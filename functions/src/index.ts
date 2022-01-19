@@ -11,13 +11,13 @@ const adminConfig: ServiceAccount = {
 };
 admin.initializeApp({
   credential: admin.credential.cert(adminConfig),
-  databaseURL:
-    "https://dem-proj-nestjs-default-rtdb.europe-west1.firebasedatabase.app/",
+  databaseURL: process.env.DATABASE_URL,
 });
 
 const db = admin.database();
 
 const app = express();
+
 
 app.get("books/api", async (req, res) => {
   try {
@@ -56,7 +56,7 @@ app.get("books/api/:id", async (req, res) => {
 });
 
 
-app.get("books/api/:id", async (req, res) => {
+app.delete("books/api/:id", async (req, res) => {
   const {id} = req.params;
   try {
     await db.ref("books").child(id).remove();
@@ -66,7 +66,7 @@ app.get("books/api/:id", async (req, res) => {
   }
 });
 
-app.get("books/api/:id", async (req, res) => {
+app.put("books/api/:id", async (req, res) => {
   const {id} = req.params;
   const {book} = req.body;
   try {
@@ -88,9 +88,19 @@ app.get("books/api/:id", async (req, res) => {
 
 
 exports.crud = functions.https.onRequest(app);
-// // Start writing Firebase Functions
-// // https://firebase.google.com/docs/functions/typescript
-//
+
+exports.moderator = functions.database.ref("/books/{bookId}").onWrite((change) => {
+  const book = change.after.val();
+
+  if (book.description == "") {
+    return change.after.ref.update({
+      description: "Скоро здесь будет описание…",
+    });
+  }
+  return null;
+});
+
+
 // export const helloWorld = functions.https.onRequest((request, response) => {
 //   functions.logger.info("Hello logs!", {structuredData: true});
 //   response.send("Hello from Firebase!");
