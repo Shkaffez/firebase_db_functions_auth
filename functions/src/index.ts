@@ -2,88 +2,63 @@ import * as functions from "firebase-functions";
 import * as express from "express";
 import "dotenv/config";
 import * as admin from "firebase-admin";
-import {ServiceAccount} from "firebase-admin";
+import * as cors from "cors";
 
-const adminConfig: ServiceAccount = {
-  projectId: process.env.FIREBASE_PROJECT_ID,
-  privateKey: process.env.FIREBASE_PRIVATE_KEY!.replace(/\\n/g, "\n"),
-  clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-};
-admin.initializeApp({
-  credential: admin.credential.cert(adminConfig),
-  databaseURL: process.env.DATABASE_URL,
-});
+admin.initializeApp();
 
 const db = admin.database();
 
 const app = express();
+app.use(express.json());
+app.use(cors({origin: true}));
 
 
-app.get("books/api", async (req, res) => {
-  try {
-    const books = (await db.ref("books").once("value")).val();
-    res.json(books || {});
-  } catch (e) {
-    console.log(e);
-  }
+app.get("/", async (req, res) => {
+  const books = (await db.ref("books").once("value")).val();
+  res.json(books || {});
 });
 
-app.post("books/api", async (req, res) => {
-  const {book} = req.body;
-  try {
-    const bookId = await db.ref("books").push(book);
-    const bookObj = await db.ref("books").child(bookId.key!).once("value");
-    res.json({
-      id: bookId.key,
-      value: bookObj,
-    });
-  } catch (e) {
-    console.error(e);
-  }
+app.post("/", async (req, res) => {
+  const book = req.body;
+  const bookId = await db.ref("books").push(book);
+  const bookObj = await db.ref("books").child(bookId.key!).once("value");
+  res.json({
+    id: bookId.key,
+    value: bookObj,
+  });
 });
 
-app.get("books/api/:id", async (req, res) => {
+app.get("/:id", async (req, res) => {
   const {id} = req.params;
-  try {
-    const book = await db.ref("books").child(id).once("value");
-    if (!book) {
-      res.status(404).end();
-    }
-    res.json(book);
-  } catch (e) {
-    console.log(e);
+  const book = await db.ref("books").child(id).once("value");
+  if (!book.val()) {
+    res.status(404).end();
   }
+  res.json(book);
 });
 
 
-app.delete("books/api/:id", async (req, res) => {
+app.delete("/:id", async (req, res) => {
   const {id} = req.params;
-  try {
-    await db.ref("books").child(id).remove();
-    res.json("ok");
-  } catch (e) {
-    console.error(e);
-  }
+  await db.ref("books").child(id).remove();
+  res.json("ok");
 });
 
-app.put("books/api/:id", async (req, res) => {
+app.put("/:id", async (req, res) => {
   const {id} = req.params;
-  const {book} = req.body;
-  try {
-    const bookObj = await db.ref("books").child(id).once("value");
-    if (!bookObj.val()) {
-      res.status(404).end();
-    }
-
-    await db
-        .ref("books")
-        .child(id)
-        .update({...book});
-    const updatedBook = await db.ref("books").child(id).once("value");
-    res.json(updatedBook);
-  } catch (e) {
-    console.error(e);
+  const book = req.body;
+  const bookObj = await db.ref("books").child(id).once("value");
+  if (!bookObj.val()) {
+    res.status(404);
+    res.json("error");
   }
+
+  await db
+      .ref("books")
+      .child(id)
+      .update(book);
+  const updatedBook = await db.ref("books").child(id).once("value");
+  res.json(updatedBook);
 });
 
 
@@ -92,7 +67,7 @@ exports.crud = functions.https.onRequest(app);
 exports.moderator = functions.database.ref("/books/{bookId}").onWrite((change) => {
   const book = change.after.val();
 
-  if (book.description == "") {
+  if (!book.description || book.description == "") {
     return change.after.ref.update({
       description: "Скоро здесь будет описание…",
     });
@@ -101,7 +76,7 @@ exports.moderator = functions.database.ref("/books/{bookId}").onWrite((change) =
 });
 
 
-// export const helloWorld = functions.https.onRequest((request, response) => {
-//   functions.logger.info("Hello logs!", {structuredData: true});
-//   response.send("Hello from Firebase!");
-// });
+export const helloWorld = functions.https.onRequest((request, response) => {
+  functions.logger.info("Hello logs!", {structuredData: true});
+  response.send("Hello from Firebase!");
+});
