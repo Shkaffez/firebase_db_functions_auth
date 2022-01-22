@@ -1,0 +1,37 @@
+<%- include("./partials/layout-start.ejs", {title: title}) %>
+  <%- include("./partials/menu.ejs") %>
+
+    <h1>
+      <%= title %>
+    </h1>
+
+    <div class="row mt-5">
+      <div class="col-sm-8">
+        <div class="card">
+          <div class="card-body">
+
+            <h5 class="card-title">
+              <%= title %>
+            </h5>
+            <p class="card-text"><strong>name: </strong>
+              <%= userRecord.name %>
+            </p>
+            <p class="card-text"><strong>uid: </strong>
+              <%= userRecord.uid %>
+            </p>
+            <p class="card-text"><strong>email: </strong>
+              <%= userRecord.email %>
+            </p>
+
+            <div class="text-right">
+              <a class="btn btn-sm btn-primary" href="/sessionLogout">
+                Log out
+              </a>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <%- include("./partials/layout-end.ejs") %>

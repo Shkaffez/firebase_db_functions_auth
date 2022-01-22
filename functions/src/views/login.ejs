@@ -1,0 +1,88 @@
+<%- include("./partials/layout-start.ejs", {title: title}) %>
+  <%- include("./partials/menu.ejs") %>
+
+    <h1>
+      <%= title %>
+    </h1>
+
+    <div class="row">
+      <div class="col-sm-5">
+
+        <form method="POST" id="login" class="mt-5">
+          <div class="form-group">
+            <label for="inputLogin">login</label>
+            <input type="text" name="login" class="form-control" required id="inputLogin">
+          </div>
+
+          <div class="form-group">
+            <label for="inputPassword">password</label>
+            <input type="password" name="password" class="form-control" required id="inputPassword">
+          </div>
+
+          <div class="form-group text-right ">
+            <button type="submit" class="btn btn-primary">Log in</button>
+          </div>
+        </form>
+
+      </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.2.10/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.2.10/firebase-auth.js"></script>
+
+    <script>
+      const get_cookie = (cookie_name) => {
+        const results = document.cookie.match('(^|;) ?' + cookie_name + '=([^;]*)(;|$)');
+        return results ? results[2] : null;
+      };
+
+      window.addEventListener("DOMContentLoaded", () => {
+        const firebaseConfig = {
+          apiKey: "AIzaSyDOXaTeMl0Z5ppMnyIr4mCGGlmlcZGzBM4",
+          authDomain: "example-func-db-auth.firebaseapp.com",
+          databaseURL: "https://example-func-db-auth-default-rtdb.europe-west1.firebasedatabase.app",
+          projectId: "example-func-db-auth",
+          storageBucket: "example-func-db-auth.appspot.com",
+          messagingSenderId: "1067005143018",
+          appId: "1:1067005143018:web:cb9f14828c0c533201f493"
+        };
+        firebase.initializeApp(firebaseConfig);
+        firebase.auth().setPersistence(firebase.auth.Auth.Persistence.NONE);
+
+        document
+          .getElementById("login")
+          .addEventListener("submit", (event) => {
+            event.preventDefault();
+            const login = event.target.login.value;
+            const password = event.target.password.value;
+
+            firebase
+              .auth()
+              .signInWithEmailAndPassword(login, password)
+              .then(({ user }) => {
+                return user.getIdToken().then((idToken) => {
+                  return fetch("/sessionLogin", {
+                    method: "POST",
+                    headers: {
+                      Accept: "application/json",
+                      "Content-Type": "application/json",
+                      "CSRF-Token": get_cookie("XSRF-TOKEN"),
+                    },
+                    body: JSON.stringify({ idToken }),
+                  });
+                });
+              })
+              .then(() => {
+                return firebase.auth().signOut();
+              })
+              .then(() => {
+                window.location = '/user/profile'
+              });
+            return false;
+          });
+
+      });
+    </script>
+
+
+    <%- include("./partials/layout-end.ejs") %>
